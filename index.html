@@ -15,8 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <style>
-
-           :root {
+        :root {
             --bg: #ffffff;
             --fg: #0f172a;
             --muted: #475569;
@@ -32,7 +31,8 @@
             --medium: #f59e0b;
             --hard: #ef4444;
         }
-            .dark {
+
+        .dark {
             --bg: #0b1220;
             --fg: #e5e7eb;
             --muted: #a1a1aa;
@@ -329,6 +329,230 @@
             transform: translateY(0);
             pointer-events: auto;
         }
+
+        @media (max-width: 600px) {
+            body {
+                font-size: 14px;
+                /* smaller text for small screens */
+                padding: 0 8px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+                /* single column */
+                gap: 12px;
+            }
+
+            .time {
+                font-size: 24px;
+            }
+
+            button {
+                padding: 6px 10px;
+                font-size: 14px;
+            }
+
+            .calendar {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 4px;
+            }
+
+            .day {
+                min-height: 60px;
+                padding: 6px;
+            }
+        }
+
+        .header>div {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .countdown-input {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .countdown-input input {
+            max-width: 100%;
+        }
+
+        #userName {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Mobile layout */
+        @media (max-width: 768px) {
+            .container {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .card {
+                width: 100%;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .calendar {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 4px;
+            }
+        }
+
+        /* Desktop: calendar spans all 3 columns */
+        @media (min-width: 769px) {
+            .calendar-card {
+                grid-column: 1 / 4;
+            }
+        }
+
+        /* Mobile: calendar takes full width */
+        @media (max-width: 768px) {
+            .calendar-card {
+                width: 100% !important;
+                align-self: stretch;
+                display: block;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .calendar {
+                display: grid;
+                grid-template-columns: repeat(7, minmax(48px, 1fr));
+                overflow-x: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .calendar {
+                display: grid;
+                grid-template-columns: repeat(7, minmax(60px, 1fr));
+                /* wider cells */
+                overflow-x: auto;
+            }
+
+            .day {
+                min-height: 80px;
+                /* give space */
+                padding: 6px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
+            }
+
+            .day label {
+                font-size: 11px;
+                /* smaller text */
+                display: flex;
+                gap: 4px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .day input[type="checkbox"] {
+                flex-shrink: 0;
+                /* checkbox won’t shrink */
+            }
+        }
+
+        #countdown {
+            font-size: clamp(24px, 3vw, 40px);
+            font-weight: 800;
+            white-space: nowrap;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-family: "Courier New", monospace;
+            letter-spacing: 0px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .countdown-input button {
+            width: 100px;
+            /* make it smaller */
+        }
+
+        .countdown-input {
+            display: flex;
+            flex-direction: column;
+            /* stack input + button */
+            align-items: center;
+            /* center align */
+            gap: 25px;
+            /* space between them */
+        }
+
+        .reset-menu {
+            right: auto;
+            left: 0;
+            min-width: 160px;
+        }
+
+        .calendar {
+            grid-template-columns: repeat(7, minmax(70px, 1fr));
+        }
+
+        @media (max-width: 500px) {
+            #countdown {
+                font-size: 18px;
+                flex-wrap: wrap;
+                text-align: center;
+            }
+        }
+
+        button:hover {
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .day input[type="checkbox"]:checked+span {
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .questions label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 24px;
+            /* keeps all labels equal height */
+        }
+
+        input[type="checkbox"] {
+            flex-shrink: 0;
+            /* checkbox doesn’t shrink */
+        }
+
+        .questions-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 160px;
+            /* keeps height stable */
+            justify-content: space-between;
+            /* pushes button to bottom */
+        }
+
+        #newQsBtn {
+            align-self: flex-start;
+            /* keeps button left aligned */
+            margin-top: 10px;
+        }
     </style>
 </head>
 
@@ -344,6 +568,7 @@
                     <button onclick="resetCountdown()">Reset Countdown</button>
                     <button onclick="resetQuestions()">Reset Daily Questions</button>
                     <button onclick="resetAttendance()">Reset Attendance</button>
+                    <button onclick="resetGoogleData()">Reset Google Account Data</button>
                 </div>
             </div>
             <button id="loginBtn">🔑 Login with Google</button>
@@ -370,10 +595,14 @@
         </div>
         <div class="card">
             <h3>Daily Questions</h3>
-            <div class="questions" id="questions"></div>
-            <button onclick="refreshQuestions()">New Questions</button>
+            <div class="questions-container">
+                <div class="questions" id="questions"></div>
+                <button id="newQsBtn" onclick="refreshQuestions()">New Questions</button>
+            </div>
         </div>
-        <div class="card" style="grid-column:1/4;">
+        
+
+        <div class="card calendar-card">
             <div class="calendar-nav">
                 <button onclick="prevMonth()">⬅ Prev</button>
                 <div id="monthLabel"></div>
@@ -435,7 +664,7 @@
             const m = String(now.getMinutes()).padStart(2, '0');
             const s = String(now.getSeconds()).padStart(2, '0');
             const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12; // 12-hour format to avoid width jump
+            // h = h % 12 || 12; // 12-hour format to avoid width jump
             clockEl.textContent = `${String(h).padStart(2, '0')}:${m}:${s}`;
             ampmEl.textContent = ampm;
             dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -450,17 +679,35 @@
             const saved = localStorage.getItem('targetDate');
             if (saved) targetDateInput.value = saved;
             const target = saved ? new Date(saved) : null;
-            if (!target) { countdownEl.textContent = 'Set a target date'; return; }
-            const update = () => {
-                const diffMs = new Date(targetDateInput.value) - new Date();
-                const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                countdownEl.textContent = diffDays >= 0 ? `${diffDays} days remaining` : "Date passed";
-            };
+            if (!target) {
+                countdownEl.textContent = 'Set a target date';
+                return;
+            }
+
+            function update() {
+                const now = new Date();
+                const diffMs = target - now;
+
+                if (diffMs <= 0) {
+                    countdownEl.textContent = "🎉 Target date reached!";
+                    clearInterval(window._countdownTimer);
+                    return;
+                }
+
+                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+                const mins = Math.floor((diffMs / (1000 * 60)) % 60);
+                const secs = Math.floor((diffMs / 1000) % 60);
+
+                countdownEl.textContent =
+                    `${days}d : ${String(hours).padStart(2, '0')}h : ${String(mins).padStart(2, '0')}m : ${String(secs).padStart(2, '0')}s`;
+            }
+
             update();
-            // refresh hourly
             if (window._countdownTimer) clearInterval(window._countdownTimer);
-            window._countdownTimer = setInterval(update, 1000 * 60 * 60);
+            window._countdownTimer = setInterval(update, 1000); // update every second
         }
+
 
         function saveTargetDate() {
             const val = targetDateInput.value || '';
@@ -651,6 +898,33 @@
             cloudSave({ attendance: firebase.firestore.FieldValue.delete() });
             renderCalendar();
         }
+        async function resetGoogleData() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("You must be logged in to reset Google data.");
+                return;
+            }
+
+            if (!confirm("⚠ This will permanently delete all your data from Google Cloud. Continue?")) {
+                return;
+            }
+
+            try {
+                await getUserRef(user.uid).set({
+                    targetDate: firebase.firestore.FieldValue.delete(),
+                    solved: firebase.firestore.FieldValue.delete(),
+                    todayQs: firebase.firestore.FieldValue.delete(),
+                    lastQsDate: firebase.firestore.FieldValue.delete(),
+                    attendance: firebase.firestore.FieldValue.delete()
+                }, { merge: true });
+
+                alert("✅ All your Google account data has been reset.");
+            } catch (e) {
+                console.error("Error resetting Google data:", e);
+                alert("❌ Failed to reset Google account data. Check console.");
+            }
+        }
+
 
         /*** ---------- Auth UI & Data Bootstrap ---------- ***/
         const loginBtn = $('loginBtn'), logoutBtn = $('logoutBtn'), userName = $('userName');
@@ -700,5 +974,3 @@
 </body>
 
 </html>
-
-
