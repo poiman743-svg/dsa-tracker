@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Daily DSA Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase (Compat SDK for simplicity with vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #0f172a;
+            --muted: #475569;
+            --card: #f8fafc;
+            --accent: #2563eb;
+            --accent-2: #16a34a;
+            --accent-3: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
+            --ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
+            --link: #7c3aed;
+            --easy: #22c55e;
+            --medium: #f59e0b;
+            --hard: #ef4444;
+        }
+
+        .dark {
+            --bg: #0b1220;
+            --fg: #e5e7eb;
+            --muted: #a1a1aa;
+            --card: #0f172a;
+            --accent: #60a5fa;
+            --accent-2: #34d399;
+            --accent-3: #fbbf24;
+            --danger: #f87171;
+            --shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+            --ring: 0 0 0 3px rgba(96, 165, 250, 0.35);
+            --link: #a78bfa;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: linear-gradient(120deg, var(--bg), color-mix(in oklab, var(--bg) 75%, var(--card)));
+            color: var(--fg);
+            transition: background 300ms ease, color 300ms ease;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1.5fr 1.2fr 1.2fr;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        button {
+            font-weight: 700;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform 0.15s ease, background 0.25s ease;
+        }
+
+        button:hover {
+            background: color-mix(in oklab, var(--accent) 85%, black);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .time {
+            font-size: clamp(28px, 4vw, 48px);
+            font-weight: 800;
+            white-space: nowrap;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-family: "Courier New", monospace;
+            letter-spacing: 2px;
+        }
+
+        #clock {
+            min-width: 140px;
+            text-align: right;
+        }
+
+        #ampm {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .day {
+            background: color-mix(in oklab, var(--card) 70%, var(--accent) 5%);
+            border-radius: 12px;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+            align-content: start;
+            min-height: 76px;
+            border: 1px solid color-mix(in oklab, var(--fg) 10%, transparent);
+        }
+
+        .day:hover {
+            background: color-mix(in oklab, var(--accent) 20%, var(--card));
+            cursor: pointer;
+        }
+
+        .day header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .daynum {
+            font-weight: 800;
+        }
+
+        .streak-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+            background: color-mix(in oklab, var(--accent-2) 70%, var(--card));
+            border: 2px solid color-mix(in oklab, var(--accent-2) 70%, transparent);
+        }
+
+        .miss-dot {
+            background: color-mix(in oklab, var(--danger) 70%, var(--card));
+            border-color: color-mix(in oklab, var(--danger) 70%, transparent);
+        }
+
+        .questions label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        .questions label a {
+            font-weight: 600;
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--muted);
+            border-radius: 6px;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            background: var(--bg);
+            transition: all 0.2s ease;
+        }
+
+        input[type="checkbox"]:hover {
+            border-color: var(--accent);
+        }
+
+        input[type="checkbox"]:checked {
+            background: var(--accent-2);
+            border-color: var(--accent-2);
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: "✔";
+            color: white;
+            font-size: 12px;
+            position: absolute;
+            left: 2px;
+            top: -1px;
+        }
+
+        .questions label.easy input[type="checkbox"]:checked {
+            background: var(--easy);
+            border-color: var(--easy);
+        }
+
+        .questions label.medium input[type="checkbox"]:checked {
+            background: var(--medium);
+            border-color: var(--medium);
+        }
+
+        .questions label.hard input[type="checkbox"]:checked {
+            background: var(--hard);
+            border-color: var(--hard);
+        }
+
+        .day input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .day input[type="checkbox"]:checked {
+            background: var(--accent-2);
+            border-color: var(--accent-2);
+        }
+
+        /* Calendar navigation */
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar-nav button {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            background: var(--accent-3);
+        }
+
+        .calendar-nav button:hover {
+            background: color-mix(in oklab, var(--accent-3) 85%, black);
+        }
+
+        .calendar-nav #monthLabel {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Reset menu */
+        .reset-menu {
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .reset-menu button {
+            background: var(--accent-2);
+            font-size: 14px;
+            padding: 6px 10px;
+        }
+
+        .reset-menu button:hover {
+            background: color-mix(in oklab, var(--accent-2) 85%, black);
+        }
+
+        .reset-menu.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="title">Daily DSA Tracker</div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button class="theme-toggle" id="themeBtn">🌙 Toggle Dark Mode</button>
+            <div style="position:relative;">
+                <button id="resetBtn">♻ Reset</button>
+                <div id="resetMenu" class="reset-menu">
+                    <button onclick="resetAll()">Reset All Data</button>
+                    <button onclick="resetCountdown()">Reset Countdown</button>
+                    <button onclick="resetQuestions()">Reset Daily Questions</button>
+                    <button onclick="resetAttendance()">Reset Attendance</button>
+                </div>
+            </div>
+            <button id="loginBtn">🔑 Login with Google</button>
+            <button id="logoutBtn" style="display:none;">🚪 Logout</button>
+            <span id="userName" style="margin-left:8px; font-weight:600;"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="time">
+                <span id="clock"></span>
+                <span id="ampm"></span>
+            </div>
+            <div class="date" id="date"></div>
+        </div>
+        <div class="card">
+            <h3>Countdown to Target Date</h3>
+            <div id="countdown"></div>
+            <div class="countdown-input">
+                <input type="date" id="targetDate" />
+                <button onclick="saveTargetDate()">Save</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>Daily Questions</h3>
+            <div class="questions" id="questions"></div>
+            <button onclick="refreshQuestions()">New Questions</button>
+        </div>
+        <div class="card" style="grid-column:1/4;">
+            <div class="calendar-nav">
+                <button onclick="prevMonth()">⬅ Prev</button>
+                <div id="monthLabel"></div>
+                <button onclick="nextMonth()">Next ➡</button>
+            </div>
+            <div class="calendar" id="calendar"></div>
+        </div>
+    </div>
+
+    <script>
+        /*** ---------- Firebase Setup (replace with your config) ---------- ***/
+        const firebaseConfig = {
+            apiKey: "AIzaSyDGTeBcrFHvpoDtS-6LZVOIwAFL-pLLVDc",
+            authDomain: "dsa-tracker-75ab8.firebaseapp.com",
+            projectId: "dsa-tracker-75ab8",
+            storageBucket: "dsa-tracker-75ab8.firebasestorage.app",
+            messagingSenderId: "216830071601",
+            appId: "1:216830071601:web:105fcb359e51ff20a91610",
+            measurementId: "G-7ZY48TJZBL"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        /*** ---------- Helpers ---------- ***/
+        const $ = (id) => document.getElementById(id);
+        const todayKey = () => new Date().toISOString().split('T')[0];
+        const getUserRef = (uid) => db.collection("users").doc(uid);
+
+        function debounce(fn, wait = 400) {
+            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+        }
+
+        // Cloud save wrapper
+        const cloudSave = debounce(async (patch) => {
+            const user = auth.currentUser;
+            if (!user) return; // not logged in → skip cloud save
+            try { await getUserRef(user.uid).set(patch, { merge: true }); }
+            catch (e) { console.error("Cloud save failed:", e); }
+        }, 500);
+
+        async function cloudLoadAll() {
+            const user = auth.currentUser;
+            if (!user) return null;
+            try {
+                const snap = await getUserRef(user.uid).get();
+                return snap.exists ? snap.data() : {};
+            } catch (e) {
+                console.error("Cloud load failed:", e);
+                return {};
+            }
+        }
+
+        /*** ---------- UI: Time & Date ---------- ***/
+        const clockEl = $('clock'), ampmEl = $('ampm'), dateEl = $('date');
+        function updateTime() {
+            const now = new Date();
+            let h = now.getHours();
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12; // 12-hour format to avoid width jump
+            clockEl.textContent = `${String(h).padStart(2, '0')}:${m}:${s}`;
+            ampmEl.textContent = ampm;
+            dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateTime, 1000); updateTime();
+
+        /*** ---------- Countdown ---------- ***/
+        const countdownEl = $('countdown');
+        const targetDateInput = $('targetDate');
+
+        function renderCountdown() {
+            const saved = localStorage.getItem('targetDate');
+            if (saved) targetDateInput.value = saved;
+            const target = saved ? new Date(saved) : null;
+            if (!target) { countdownEl.textContent = 'Set a target date'; return; }
+            const update = () => {
+                const diffMs = new Date(targetDateInput.value) - new Date();
+                const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                countdownEl.textContent = diffDays >= 0 ? `${diffDays} days remaining` : "Date passed";
+            };
+            update();
+            // refresh hourly
+            if (window._countdownTimer) clearInterval(window._countdownTimer);
+            window._countdownTimer = setInterval(update, 1000 * 60 * 60);
+        }
+
+        function saveTargetDate() {
+            const val = targetDateInput.value || '';
+            localStorage.setItem('targetDate', val);
+            renderCountdown();
+            // cloud persist
+            cloudSave({ targetDate: val });
+        }
+
+        /*** ---------- Daily Questions ---------- ***/
+        const leetQuestions = [
+            { title: "Two Sum", url: "https://leetcode.com/problems/two-sum/", diff: "easy" },
+            { title: "Add Two Numbers", url: "https://leetcode.com/problems/add-two-numbers/", diff: "medium" },
+            { title: "Median of Two Sorted Arrays", url: "https://leetcode.com/problems/median-of-two-sorted-arrays/", diff: "hard" },
+            { title: "Valid Parentheses", url: "https://leetcode.com/problems/valid-parentheses/", diff: "easy" },
+            { title: "Merge Intervals", url: "https://leetcode.com/problems/merge-intervals/", diff: "medium" },
+            { title: "LFU Cache", url: "https://leetcode.com/problems/lfu-cache/", diff: "hard" }
+        ];
+
+        function getStoredSolved() {
+            try { return JSON.parse(localStorage.getItem('solved') || '{}'); } catch { return {}; }
+        }
+        function setStoredSolved(obj) {
+            localStorage.setItem('solved', JSON.stringify(obj));
+            cloudSave({ solved: obj });
+        }
+
+        function renderQuestions() {
+            const container = $('questions');
+            container.innerHTML = '';
+            const lastDate = localStorage.getItem('lastQsDate');
+            if (lastDate !== todayKey()) {
+                localStorage.removeItem('todayQs');
+            }
+            let chosen = [];
+            try { chosen = JSON.parse(localStorage.getItem('todayQs') || '[]'); } catch { chosen = []; }
+            if (chosen.length === 0) {
+                chosen = [...leetQuestions].sort(() => 0.5 - Math.random()).slice(0, 3);
+                localStorage.setItem('todayQs', JSON.stringify(chosen));
+                localStorage.setItem('lastQsDate', todayKey());
+                cloudSave({ todayQs: chosen, lastQsDate: todayKey() });
+            }
+
+            const solved = getStoredSolved();
+            chosen.forEach(q => {
+                const label = document.createElement('label');
+                label.classList.add(q.diff);
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = !!solved[q.title];
+                cb.addEventListener('change', () => {
+                    solved[q.title] = cb.checked;
+                    setStoredSolved(solved);
+                });
+                const a = document.createElement('a');
+                a.href = q.url; a.target = '_blank'; a.textContent = `${q.title} (${q.diff})`;
+                a.style.color = `var(--${q.diff})`;
+                label.appendChild(cb); label.appendChild(a);
+                container.appendChild(label);
+            });
+        }
+
+        function refreshQuestions() {
+            localStorage.removeItem('todayQs');
+            localStorage.setItem('lastQsDate', todayKey());
+            cloudSave({ todayQs: firebase.firestore.FieldValue.delete(), lastQsDate: todayKey() });
+            renderQuestions();
+        }
+
+        /*** ---------- Attendance Calendar ---------- ***/
+        const calendarEl = $('calendar');
+        const monthLabel = $('monthLabel');
+        let view = new Date();
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        function saveMonthData(year, month, data) {
+            const key = `att-${year}-${month}`;
+            localStorage.setItem(key, JSON.stringify(data));
+            // save only this month patch to cloud
+            cloudSave({ attendance: { [key]: data } });
+        }
+        function loadMonthData(year, month) {
+            try { return JSON.parse(localStorage.getItem(`att-${year}-${month}`) || '{}'); } catch { return {}; }
+        }
+
+        function renderStreakBanner(year, month, data) {
+            let streak = 0, max = 0;
+            for (let d = 1; d <= 31; d++) {
+                if (data[d]) { streak++; if (streak > max) max = streak; } else streak = 0;
+            }
+            monthLabel.textContent = view.toLocaleDateString([], { month: 'long', year: 'numeric' }) + ` (Max streak: ${max})`;
+        }
+
+        function renderCalendar() {
+            calendarEl.innerHTML = '';
+            weekdays.forEach(w => {
+                const h = document.createElement('div');
+                h.className = 'weekday'; h.textContent = w; calendarEl.appendChild(h);
+            });
+            const year = view.getFullYear(); const month = view.getMonth();
+            const firstDayIdx = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const data = loadMonthData(year, month);
+
+            for (let i = 0; i < firstDayIdx; i++) calendarEl.appendChild(document.createElement('div'));
+
+            const today = new Date();
+            const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const cell = document.createElement('div'); cell.className = 'day';
+                const header = document.createElement('header');
+                const dn = document.createElement('div'); dn.className = 'daynum'; dn.textContent = day; header.appendChild(dn);
+                const dot = document.createElement('span'); dot.className = 'streak-dot ' + (data[day] ? '' : 'miss-dot'); header.appendChild(dot);
+                cell.appendChild(header);
+
+                const row = document.createElement('label');
+                const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!data[day]; cb.style.marginRight = '6px';
+                if (!(isCurrentMonth && day === today.getDate())) { cb.disabled = true; cb.title = "Only today's date can be marked"; }
+                row.appendChild(cb);
+                row.appendChild(document.createTextNode('Attended'));
+                cell.appendChild(row);
+
+                cb.addEventListener('change', () => {
+                    data[day] = cb.checked;
+                    dot.classList.toggle('miss-dot', !cb.checked);
+                    saveMonthData(year, month, data);
+                    renderStreakBanner(year, month, data);
+                });
+
+                if (isCurrentMonth && day === today.getDate()) {
+                    cell.style.outline = '2px dashed ' + getComputedStyle(document.documentElement).getPropertyValue('--link');
+                    cell.style.outlineOffset = '2px';
+                }
+                calendarEl.appendChild(cell);
+            }
+            renderStreakBanner(year, month, data);
+        }
+        function prevMonth() { view.setMonth(view.getMonth() - 1); renderCalendar(); }
+        function nextMonth() { view.setMonth(view.getMonth() + 1); renderCalendar(); }
+
+        /*** ---------- Theme toggle ---------- ***/
+        $('themeBtn').addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+        });
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+
+        /*** ---------- Reset menu ---------- ***/
+        const resetBtn = $('resetBtn'), resetMenu = $('resetMenu');
+        resetBtn.addEventListener('click', () => resetMenu.classList.toggle('show'));
+        document.addEventListener('click', (e) => {
+            if (!resetBtn.contains(e.target) && !resetMenu.contains(e.target)) resetMenu.classList.remove('show');
+        });
+
+        async function resetAll() {
+            localStorage.clear();
+            const user = auth.currentUser;
+            if (user) {
+                await getUserRef(user.uid).set({
+                    targetDate: firebase.firestore.FieldValue.delete(),
+                    solved: firebase.firestore.FieldValue.delete(),
+                    todayQs: firebase.firestore.FieldValue.delete(),
+                    lastQsDate: firebase.firestore.FieldValue.delete(),
+                    attendance: firebase.firestore.FieldValue.delete()
+                }, { merge: true });
+            }
+            location.reload();
+        }
+        function resetCountdown() {
+            localStorage.removeItem("targetDate");
+            cloudSave({ targetDate: firebase.firestore.FieldValue.delete() });
+            renderCountdown();
+        }
+        function resetQuestions() {
+            localStorage.removeItem("todayQs");
+            localStorage.removeItem("lastQsDate");
+            localStorage.removeItem("solved");
+            cloudSave({
+                todayQs: firebase.firestore.FieldValue.delete(),
+                lastQsDate: firebase.firestore.FieldValue.delete(),
+                solved: firebase.firestore.FieldValue.delete()
+            });
+            renderQuestions();
+        }
+        function resetAttendance() {
+            Object.keys(localStorage).forEach(k => { if (k.startsWith("att-")) localStorage.removeItem(k); });
+            cloudSave({ attendance: firebase.firestore.FieldValue.delete() });
+            renderCalendar();
+        }
+
+        /*** ---------- Auth UI & Data Bootstrap ---------- ***/
+        const loginBtn = $('loginBtn'), logoutBtn = $('logoutBtn'), userName = $('userName');
+
+        loginBtn.addEventListener('click', async () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try { await auth.signInWithPopup(provider); } catch (e) { console.error(e); }
+        });
+        logoutBtn.addEventListener('click', async () => { await auth.signOut(); });
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                userName.textContent = `Hello, ${user.displayName}`;
+                loginBtn.style.display = 'none'; logoutBtn.style.display = 'inline-block';
+                // Load cloud data and hydrate local cache
+                const data = await cloudLoadAll();
+                if (data) {
+                    if (data.targetDate) { localStorage.setItem('targetDate', data.targetDate); }
+                    if (data.solved) { localStorage.setItem('solved', JSON.stringify(data.solved)); }
+                    if (data.todayQs) { localStorage.setItem('todayQs', JSON.stringify(data.todayQs)); }
+                    if (data.lastQsDate) { localStorage.setItem('lastQsDate', data.lastQsDate); }
+                    if (data.attendance) {
+                        Object.keys(data.attendance).forEach(k => localStorage.setItem(k, JSON.stringify(data.attendance[k])));
+                    }
+                }
+                // Re-render after hydration
+                renderCountdown();
+                renderQuestions();
+                renderCalendar();
+            } else {
+                userName.textContent = '';
+                loginBtn.style.display = 'inline-block'; logoutBtn.style.display = 'none';
+            }
+        });
+
+        /*** ---------- Initial Render ---------- ***/
+        // Ensure question set is for today
+        const lastDate = localStorage.getItem('lastQsDate');
+        if (lastDate !== todayKey()) {
+            localStorage.removeItem('todayQs');
+            localStorage.setItem('lastQsDate', todayKey());
+        }
+        renderCountdown();
+        renderQuestions();
+        renderCalendar();
+    </script>
+</body>
+
+</html>
